@@ -148,6 +148,50 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_get_iter(obj: lean_obj_arg) -> l
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn lean_hashbrown_hashset_remove(
+    obj: lean_obj_arg,
+    hash: u64,
+    eq_closure: lean_obj_arg,
+) -> lean_obj_res {
+    let obj = exlusive_hashset(obj);
+    let table = get_data_from_external::<HashSet>(obj);
+    let eq = |x: &lean_obj_arg| {
+        lean_inc(eq_closure);
+        let boxed = lean_apply_1(eq_closure, *x);
+        lean_unbox(boxed) != 0
+    };
+    if let Some(x) = (*table).remove_entry(hash, eq) {
+        lean_dec(x);
+    }
+    lean_dec(eq_closure);
+    obj
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lean_hashbrown_hashset_contains(
+    obj: lean_obj_arg,
+    hash: u64,
+    eq_closure: lean_obj_arg,
+) -> u8 {
+    let table = get_data_from_external::<HashSet>(obj);
+    let eq = |x: &lean_obj_arg| {
+        lean_inc(eq_closure);
+        let boxed = lean_apply_1(eq_closure, *x);
+        lean_unbox(boxed) != 0
+    };
+    let result = (*table).find(hash, eq).is_some() as u8;
+    lean_dec(eq_closure);
+    result
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn lean_hashbrown_hashset_len(obj: lean_obj_arg) -> usize {
+    let table = get_data_from_external::<HashSet>(obj);
+    
+    (*table).len()
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
     obj: lean_obj_arg,
     hash: u64,
@@ -187,12 +231,11 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
 #[no_mangle]
 pub unsafe extern "C" fn lean_hashbrown_hashset_iter_has_element(obj: lean_obj_arg) -> u8 {
     let iter = get_data_from_external::<HashSetIter>(obj);
-    let res = match &*iter {
+    
+    match &*iter {
         HashSetIter::More { .. } => 1,
         HashSetIter::Finished => 0,
-    };
-    lean_dec_ref(obj);
-    res
+    }
 }
 
 #[no_mangle]
@@ -200,7 +243,8 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_iter_get_element(
     obj: lean_obj_arg,
 ) -> lean_obj_res {
     let iter = get_data_from_external::<HashSetIter>(obj);
-    let res = match &*iter {
+    
+    match &*iter {
         HashSetIter::More { current, .. } => {
             lean_inc(*current);
             *current
@@ -209,9 +253,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_iter_get_element(
             let msg = "trying to get an element from finished iterator\0".as_ptr() as *const i8;
             lean_internal_panic(msg)
         }
-    };
-    lean_dec_ref(obj);
-    res
+    }
 }
 
 #[no_mangle]
