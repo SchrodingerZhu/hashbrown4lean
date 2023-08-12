@@ -69,6 +69,7 @@ unsafe extern "C" fn hashset_foreach(set: *mut c_void, f: lean_obj_arg) {
     }
     lean_inc_n(f, len - 1);
     for i in (*set).iter() {
+        lean_inc(*i.as_ref());
         lean_apply_1(f, *i.as_ref());
     }
 }
@@ -87,6 +88,7 @@ unsafe extern "C" fn hashset_iter_foreach(iter: *mut c_void, f: lean_obj_arg) {
     let iter = iter as *mut HashSetIter;
     match &*iter {
         HashSetIter::More { table, .. } => {
+            lean_inc_ref(*table);
             lean_apply_1(f, *table);
         }
         HashSetIter::Finished => {}
