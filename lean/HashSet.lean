@@ -29,15 +29,15 @@ opaque HashSet.mk : {α : Type} → HashSet α
 
 @[extern "lean_hashbrown_hashset_insert"]
 opaque HashSet.insert_raw : {α : Type} 
-  → HashSet α → UInt64 → α → (α → Bool) → (α → UInt64) → HashSet α 
+  → HashSet α → UInt64 → α → @&(α → Bool) → @&(α → UInt64) → HashSet α 
 
 @[extern "lean_hashbrown_hashset_contains"]
 opaque HashSet.contains_raw : {α : Type} 
-  → @& HashSet α → UInt64 → (α → Bool) → Bool
+  → @& HashSet α → UInt64 → @&(α → Bool) → Bool
 
 @[extern "lean_hashbrown_hashset_remove"]
 opaque HashSet.remove_raw : {α : Type} 
-  → HashSet α → UInt64 → (α → Bool) → HashSet α
+  → HashSet α → UInt64 → @&(α → Bool) → HashSet α
 
 @[extern "lean_hashbrown_hashset_len"]
 opaque HashSet.len : {α : Type} → @& HashSet α → USize    

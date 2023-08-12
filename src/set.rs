@@ -166,7 +166,6 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_remove(
     if let Some(x) = (*table).remove_entry(hash, eq) {
         lean_dec(x);
     }
-    lean_dec(eq_closure);
     obj
 }
 
@@ -183,9 +182,8 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_contains(
         let boxed = lean_apply_1(eq_closure, *x);
         lean_unbox(boxed) != 0
     };
-    let result = (*table).find(hash, eq).is_some() as u8;
-    lean_dec(eq_closure);
-    result
+
+    (*table).find(hash, eq).is_some() as u8
 }
 
 #[no_mangle]
@@ -229,8 +227,6 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
             (*table).insert_in_slot(hash, slot, target);
         }
     }
-    lean_dec(eq_closure);
-    lean_dec(hash_closure);
     obj
 }
 
