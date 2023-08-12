@@ -156,6 +156,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_remove(
     let obj = exlusive_hashset(obj);
     let table = get_data_from_external::<HashSet>(obj);
     let eq = |x: &lean_obj_arg| {
+        lean_inc(*x);
         lean_inc(eq_closure);
         let boxed = lean_apply_1(eq_closure, *x);
         lean_unbox(boxed) != 0
@@ -175,6 +176,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_contains(
 ) -> u8 {
     let table = get_data_from_external::<HashSet>(obj);
     let eq = |x: &lean_obj_arg| {
+        lean_inc(*x);
         lean_inc(eq_closure);
         let boxed = lean_apply_1(eq_closure, *x);
         lean_unbox(boxed) != 0
@@ -202,11 +204,13 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
     let obj = exlusive_hashset(obj);
     let table = get_data_from_external::<HashSet>(obj);
     let eq = |x: &lean_obj_arg| {
+        lean_inc(*x);
         lean_inc(eq_closure);
         let boxed = lean_apply_1(eq_closure, *x);
         lean_unbox(boxed) != 0
     };
     let hasher = |x: &lean_obj_arg| {
+        lean_inc(*x);
         lean_inc(hash_closure);
         let boxed = lean_apply_1(hash_closure, *x);
         let val = lean_unbox_uint64(boxed);
