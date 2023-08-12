@@ -1,6 +1,3 @@
-import Init.Data.Format.Basic
-
-
 -- Opaque type for HashSet
 opaque HashSetPointed : (α : Type) → NonemptyType
 def HashSet (α : Type) : Type := (HashSetPointed α).type
