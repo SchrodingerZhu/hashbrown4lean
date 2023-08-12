@@ -1,12 +1,12 @@
 import Init.Data.Format.Basic
 
 
--- Opque type for HashSet
+-- Opaque type for HashSet
 opaque HashSetPointed : (α : Type) → NonemptyType
 def HashSet (α : Type) : Type := (HashSetPointed α).type
 instance : Nonempty (HashSet α) := (HashSetPointed α).property
 
--- Opque type for HashSetIter
+-- Opaque type for HashSetIter
 opaque HashSetIterPointed : (α : Type)  → NonemptyType
 def HashSetIter (α : Type) : Type := (HashSetIterPointed α).type
 instance : Nonempty (HashSetIter α) := (HashSetIterPointed α).property
