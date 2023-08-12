@@ -1,0 +1,17 @@
+[package]
+name = "lean_hashbrown"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hashbrown = { version = "0.14.0", features = ["raw"]}
+lazy_static = "1.4.0"
+
+[build-dependencies]
+bindgen = "0.66.1"
+
+[lib]
+name = "lean_hashbrown"
+crate-type = ["staticlib"]
