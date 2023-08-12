@@ -191,7 +191,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_contains(
 #[no_mangle]
 pub unsafe extern "C" fn lean_hashbrown_hashset_len(obj: lean_obj_arg) -> usize {
     let table = get_data_from_external::<HashSet>(obj);
-    
+
     (*table).len()
 }
 
@@ -237,7 +237,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
 #[no_mangle]
 pub unsafe extern "C" fn lean_hashbrown_hashset_iter_has_element(obj: lean_obj_arg) -> u8 {
     let iter = get_data_from_external::<HashSetIter>(obj);
-    
+
     match &*iter {
         HashSetIter::More { .. } => 1,
         HashSetIter::Finished => 0,
@@ -249,7 +249,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_iter_get_element(
     obj: lean_obj_arg,
 ) -> lean_obj_res {
     let iter = get_data_from_external::<HashSetIter>(obj);
-    
+
     match &*iter {
         HashSetIter::More { current, .. } => {
             lean_inc(*current);
