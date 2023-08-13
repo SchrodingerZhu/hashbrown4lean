@@ -1,6 +1,7 @@
 use ffi::{lean_external_object, lean_object};
 
 mod ffi;
+mod map;
 mod set;
 
 #[inline]

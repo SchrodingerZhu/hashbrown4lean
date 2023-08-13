@@ -46,7 +46,7 @@ opaque HashSet.iter : {α : Type} → HashSet α → HashSetIter α
 opaque HashSetIter.hasElement : {α : Type} → @& HashSetIter α → Bool
 
 @[extern "lean_hashbrown_hashset_iter_get_element"]
-private opaque HashSetIter.get! : {α : Type} → [Nonempty α] → @& HashSetIter α → α
+opaque HashSetIter.get? : {α : Type} → @& HashSetIter α → Option α
 
 @[extern "lean_hashbrown_hashset_iter_move_next"]
 opaque HashSetIter.next : {α : Type} → HashSetIter α → HashSetIter α
@@ -67,25 +67,21 @@ def HashSet.contains {α : Type} [Hashable α] [BEq α] (s: @& HashSet α) (a: �
   let eq := fun (b: α) => a == b
   HashSet.containsRaw s hash eq
 
-private partial def formatTail [Repr α] [Nonempty α] (acc: Std.Format) (level: Nat) (tail: HashSetIter α) : Std.Format :=
-  if tail.hasElement then
-    let acc := acc ++ "," ++ Repr.reprPrec tail.get! level
+private partial def formatTail [Repr α] (acc: Std.Format) (level: Nat) (tail: HashSetIter α) : Std.Format :=
+  match tail.get? with
+  | some a => 
+    let acc := acc ++ ", " ++ Repr.reprPrec a level
     formatTail acc level (tail.next)
-  else
-    acc
+  | none => acc
 
-private def formatHashSet [Repr α] [Nonempty α] (s: HashSet α) (level: Nat) : Std.Format :=
+private def formatHashSet [Repr α] (s: HashSet α) (level: Nat) : Std.Format :=
   let iter := HashSet.iter s
-  if iter.hasElement
-  then
-    "#{" ++ formatTail (Repr.reprPrec iter.get! level) level iter.next ++ "}"
-  else "#{}"
-  
-def HashSetIter.get? {α : Type} [Nonempty α] (iter: @& HashSetIter α) : Option α :=
-  if iter.hasElement then some iter.get! else none  
+  match iter.get? with
+  | some hd => "#{" ++ formatTail (Repr.reprPrec hd level) level iter.next ++ "}"
+  | none => "#{}"
 
-instance [Repr α] [Nonempty α] : Repr (HashSet α) where
+instance [Repr α] : Repr (HashSet α) where
   reprPrec := formatHashSet
 
-instance [Repr α] [Nonempty α] : ToString (HashSet α) where
+instance [Repr α] : ToString (HashSet α) where
   toString x := Repr.reprPrec x 0 |> Std.Format.pretty

@@ -49,7 +49,8 @@ unsafe extern "C" fn lean_hashbrown_hashset_create() -> lean_obj_res {
     let set = HashSet::new();
     let set = Box::new(set);
     let data = Box::into_raw(set) as *mut c_void;
-    lean_alloc_external(HASHSET_CLASS, data)
+    let obj = lean_alloc_external(HASHSET_CLASS, data);
+    obj
 }
 
 unsafe extern "C" fn hashset_finalize(set: *mut c_void) {
@@ -128,11 +129,14 @@ unsafe fn exlusive_iter(iter: lean_obj_arg) -> lean_obj_res {
 
 unsafe fn exlusive_hashset(set: lean_obj_arg) -> lean_obj_res {
     if lean_is_exclusive(set) {
+        println!("target is exclusive: {:?}", set);
         set
     } else {
+        println!("target is not exclusive: {:?}", set);
         let inner: *mut HashSet = get_data_from_external(set);
         let cloned = Box::into_raw(Box::new((*inner).clone()));
         let new_set = lean_alloc_external(HASHSET_CLASS, cloned as *mut c_void);
+        println!("new set: {:?}", new_set);
         for i in (*inner).iter() {
             lean_inc(*i.as_ref());
         }
@@ -201,6 +205,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
     eq_closure: lean_obj_arg,
     hash_closure: lean_obj_arg,
 ) -> lean_obj_res {
+    println!("obj.m_rc = {}", (*obj).m_rc);
     let obj = exlusive_hashset(obj);
     let table = get_data_from_external::<HashSet>(obj);
     let eq = |x: &lean_obj_arg| {
@@ -246,16 +251,13 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_iter_get_element(
 ) -> lean_obj_res {
     let iter = get_data_from_external::<HashSetIter>(obj);
 
-    match &*iter {
+    option_to_lean(match &*iter {
         HashSetIter::More { current, .. } => {
             lean_inc(*current);
-            *current
+            Some(*current)
         }
-        HashSetIter::Finished => {
-            let msg = "trying to get an element from finished iterator\0".as_ptr() as *const i8;
-            lean_internal_panic(msg)
-        }
-    }
+        HashSetIter::Finished => None,
+    })
 }
 
 #[no_mangle]
