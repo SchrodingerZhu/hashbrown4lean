@@ -30,7 +30,6 @@ pub unsafe fn lean_has_rc(obj: *mut lean_object) -> bool {
 
 #[inline]
 pub unsafe fn lean_dec_ref(obj: *mut lean_object) {
-    println!("lean_dec_ref({:?}), m_rc = {}", obj, (*obj).m_rc);
     if (*obj).m_rc > 1 {
         (*obj).m_rc -= 1;
     } else if lean_has_rc(obj) {
@@ -160,9 +159,7 @@ pub unsafe fn lean_io_result_mk_ok(obj: lean_obj_arg) -> lean_obj_res {
 #[inline]
 pub unsafe fn lean_alloc_small_object(mut sz: u32) -> *mut lean_object {
     sz = lean_align(sz, LEAN_OBJECT_SIZE_DELTA);
-    println!("lean_alloc_small_object({})", sz);
     let slot_idx = lean_get_slot_idx(sz);
-    println!("lean_alloc_small_object({}) -> {}", sz, slot_idx);
     debug_assert!(sz <= LEAN_MAX_SMALL_OBJECT_SIZE);
     lean_alloc_small(sz, slot_idx) as *mut lean_object
 }

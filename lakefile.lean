@@ -24,7 +24,7 @@ lean_exe «swisstable» {
 
 extern_lib liblean_hashbrown pkg := do
   let name := nameToStaticLib "lean_hashbrown"
-  let libFile := pkg.dir / "target" / "debug" / name
+  let libFile := pkg.dir / "target" / "release" / name
   let cargoFile ← inputFile <| pkg.dir / "Cargo.toml"
   let librsFile ← inputFile <| pkg.dir / "src" / "lib.rs"
   let setFile ← inputFile <| pkg.dir / "src" / "set.rs"
@@ -32,5 +32,5 @@ extern_lib liblean_hashbrown pkg := do
   let ffiFile ← inputFile <| pkg.dir / "src" / "ffi.rs"
   buildFileAfterDepArray libFile #[cargoFile, librsFile, setFile, mapFile, ffiFile] (fun _ => proc {
     cmd := "cargo",
-    args := #["build"],
+    args := #["build", "--release"]
   } true) (pure BuildTrace.nil) 

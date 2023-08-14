@@ -7,6 +7,9 @@ fn main() {
         .expect("failed to execute lean")
         .stdout;
     let parsed = std::str::from_utf8(&output).unwrap().trim();
+    let include = PathBuf::new()
+        .join(parsed)
+        .join("include");
     let path = PathBuf::new()
         .join(parsed)
         .join("include")
@@ -19,6 +22,7 @@ fn main() {
         // The input header we would like to generate
         // bindings for.
         .header(path)
+        .clang_arg(format!("-I{}", include.display()))
         .allowlist_type("lean_.*")
         .allowlist_var("LEAN_.*")
         .allowlist_var("LEAN_.*")

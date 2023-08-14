@@ -65,10 +65,9 @@ unsafe extern "C" fn hashset_foreach(set: *mut c_void, f: lean_obj_arg) {
     let set = set as *mut HashSet;
     let len = (*set).len();
     if len == 0 {
-        lean_dec(f);
         return;
     }
-    lean_inc_n(f, len - 1);
+    lean_inc_n(f, len);
     for i in (*set).iter() {
         lean_inc(*i.as_ref());
         lean_apply_1(f, *i.as_ref());
@@ -90,6 +89,7 @@ unsafe extern "C" fn hashset_iter_foreach(iter: *mut c_void, f: lean_obj_arg) {
     match &*iter {
         HashSetIter::More { table, .. } => {
             lean_inc_ref(*table);
+            lean_inc(f);
             lean_apply_1(f, *table);
         }
         HashSetIter::Finished => {}
@@ -129,14 +129,11 @@ unsafe fn exlusive_iter(iter: lean_obj_arg) -> lean_obj_res {
 
 unsafe fn exlusive_hashset(set: lean_obj_arg) -> lean_obj_res {
     if lean_is_exclusive(set) {
-        println!("target is exclusive: {:?}", set);
         set
     } else {
-        println!("target is not exclusive: {:?}", set);
         let inner: *mut HashSet = get_data_from_external(set);
         let cloned = Box::into_raw(Box::new((*inner).clone()));
         let new_set = lean_alloc_external(HASHSET_CLASS, cloned as *mut c_void);
-        println!("new set: {:?}", new_set);
         for i in (*inner).iter() {
             lean_inc(*i.as_ref());
         }
@@ -205,7 +202,6 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
     eq_closure: lean_obj_arg,
     hash_closure: lean_obj_arg,
 ) -> lean_obj_res {
-    println!("obj.m_rc = {}", (*obj).m_rc);
     let obj = exlusive_hashset(obj);
     let table = get_data_from_external::<HashSet>(obj);
     let eq = |x: &lean_obj_arg| {

@@ -1,3 +1,6 @@
+.idea
+.vscode
+
 /build
 /lake-packages/*
 
@@ -6,3 +9,4 @@
 
 /target
 /Cargo.lock
+vgcore.*

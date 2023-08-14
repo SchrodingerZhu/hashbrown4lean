@@ -70,10 +70,9 @@ unsafe extern "C" fn hashmap_foreach(set: *mut c_void, f: lean_obj_arg) {
     let set = set as *mut HashMap;
     let len = (*set).len();
     if len == 0 {
-        lean_dec(f);
         return;
     }
-    lean_inc_n(f, 2 * len - 1);
+    lean_inc_n(f, 2 * len);
     for i in (*set).iter() {
         lean_inc(i.as_ref().key);
         lean_inc(i.as_ref().value);
@@ -97,6 +96,7 @@ unsafe extern "C" fn hashmap_iter_foreach(iter: *mut c_void, f: lean_obj_arg) {
     match &*iter {
         HashMapIter::More { table, .. } => {
             lean_inc_ref(*table);
+            lean_inc(f);
             lean_apply_1(f, *table);
         }
         HashMapIter::Finished => {}
@@ -215,7 +215,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_get_value(
             lean_inc(kv.as_ref().value);
             Some(kv.as_ref().value)
         }
-        None => None
+        None => None,
     })
 }
 
@@ -256,9 +256,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_insert(
             let prev = *bucket.as_ref();
             lean_dec(prev.key);
             lean_dec(prev.value);
-            *bucket.as_mut() = KVPair {
-                key, value
-            };
+            *bucket.as_mut() = KVPair { key, value };
         }
         Err(slot) => {
             (*table).insert_in_slot(hash, slot, KVPair { key, value });
@@ -278,9 +276,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_has_kv(obj: lean_obj_arg) -
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_key(
-    obj: lean_obj_arg,
-) -> lean_obj_res {
+pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_key(obj: lean_obj_arg) -> lean_obj_res {
     let iter = get_data_from_external::<HashMapIter>(obj);
 
     option_to_lean(match &*iter {
@@ -288,16 +284,12 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_key(
             lean_inc(current.key);
             Some(current.key)
         }
-        HashMapIter::Finished => {
-            None
-        }
+        HashMapIter::Finished => None,
     })
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_value(
-    obj: lean_obj_arg,
-) -> lean_obj_res {
+pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_value(obj: lean_obj_arg) -> lean_obj_res {
     let iter = get_data_from_external::<HashMapIter>(obj);
 
     option_to_lean(match &*iter {
@@ -305,7 +297,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_value(
             lean_inc(current.value);
             Some(current.value)
         }
-        HashMapIter::Finished => None
+        HashMapIter::Finished => None,
     })
 }
 

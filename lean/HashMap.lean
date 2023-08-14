@@ -48,7 +48,7 @@ opaque HashMap.iter : {κ ν : Type} → HashMap κ ν → HashMapIter κ ν
 opaque HashMapIter.hasKV : {κ ν : Type} → @& HashMapIter κ ν → Bool
 
 @[extern "lean_hashbrown_hashmap_iter_get_key"]
-opaque HashMapIter.getKey? : {κ ν : Type} → @& HashMapIter κ ν → Option ν
+opaque HashMapIter.getKey? : {κ ν : Type} → @& HashMapIter κ ν → Option κ
 
 @[extern "lean_hashbrown_hashmap_iter_get_value"]
 opaque HashMapIter.getValue? : {κ ν : Type} → @& HashMapIter κ ν → Option ν
