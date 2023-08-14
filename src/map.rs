@@ -222,7 +222,6 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_get_value(
 #[no_mangle]
 pub unsafe extern "C" fn lean_hashbrown_hashmap_len(obj: lean_obj_arg) -> usize {
     let table = get_data_from_external::<HashMap>(obj);
-
     (*table).len()
 }
 
