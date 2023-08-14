@@ -1,5 +1,5 @@
-use std::ffi::c_void;
-
+use core::ffi::c_void;
+use alloc::boxed::Box;
 use crate::{ffi::*, get_data_from_external};
 use hashbrown::raw::{RawIter, RawTable};
 
@@ -41,8 +41,8 @@ impl HashSetIter {
     }
 }
 
-static mut HASHSET_CLASS: *mut lean_external_class = std::ptr::null_mut();
-static mut HASHSET_ITER_CLASS: *mut lean_external_class = std::ptr::null_mut();
+static mut HASHSET_CLASS: *mut lean_external_class = core::ptr::null_mut();
+static mut HASHSET_ITER_CLASS: *mut lean_external_class = core::ptr::null_mut();
 
 #[no_mangle]
 unsafe extern "C" fn lean_hashbrown_hashset_create() -> lean_obj_res {

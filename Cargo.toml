@@ -7,7 +7,6 @@ build = "build.rs"
 
 [dependencies]
 hashbrown = { version = "0.14.0", features = ["raw"]}
-lazy_static = "1.4.0"
 
 [build-dependencies]
 bindgen = "0.66.1"
@@ -15,3 +14,9 @@ bindgen = "0.66.1"
 [lib]
 name = "lean_hashbrown"
 crate-type = ["staticlib"]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

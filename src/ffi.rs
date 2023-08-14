@@ -4,7 +4,7 @@
 #![allow(unused)]
 #![allow(clippy::useless_transmute)]
 
-use std::ffi::c_void;
+use core::ffi::c_void;
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
@@ -116,7 +116,7 @@ pub unsafe fn lean_alloc_ctor_memory(sz: u32) -> *mut lean_object {
     debug_assert!(sz1 <= LEAN_MAX_SMALL_OBJECT_SIZE);
     let r = lean_alloc_small(sz1, idx) as *mut lean_object;
     if sz1 > sz {
-        let last = r as usize + sz1 as usize - std::mem::size_of::<usize>();
+        let last = r as usize + sz1 as usize - core::mem::size_of::<usize>();
         *(last as *mut usize) = 0;
     }
     r
@@ -136,8 +136,8 @@ pub unsafe fn lean_alloc_ctor(tag: u32, num_objs: u32, scalar_sz: u32) -> *mut l
     debug_assert!(num_objs < LEAN_MAX_CTOR_FIELDS);
     debug_assert!(scalar_sz < LEAN_MAX_CTOR_SCALARS_SIZE);
     let obj = lean_alloc_ctor_memory(
-        std::mem::size_of::<lean_ctor_object>() as u32
-            + num_objs * std::mem::size_of::<*mut lean_object>() as u32
+        core::mem::size_of::<lean_ctor_object>() as u32
+            + num_objs * core::mem::size_of::<*mut lean_object>() as u32
             + scalar_sz,
     );
     lean_set_st_header(obj, tag, num_objs);
@@ -169,7 +169,7 @@ pub unsafe fn lean_alloc_external(
     class: *mut lean_external_class,
     data: *mut c_void,
 ) -> *mut lean_object {
-    let obj = lean_alloc_small_object(std::mem::size_of::<lean_external_object>() as u32);
+    let obj = lean_alloc_small_object(core::mem::size_of::<lean_external_object>() as u32);
     lean_set_st_header(obj, LeanExternal, 0);
     {
         let ext = obj as *mut lean_external_object;

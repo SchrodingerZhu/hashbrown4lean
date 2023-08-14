@@ -29,6 +29,7 @@ fn main() {
         .allowlist_var("Lean.*")
         .allowlist_function("lean_.*")
         .allowlist_recursively(true)
+        .use_core()
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
