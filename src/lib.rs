@@ -28,7 +28,7 @@ extern "C" {
 #[panic_handler]
 unsafe fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
     let info = "liblean_hashbrown rust ffi panics\n";
-    lean_internal_panic(info.as_ptr() as _);
+    crate::ffi::lean_internal_panic(info.as_ptr() as _)
 }
 
 struct LibcAlloc;
