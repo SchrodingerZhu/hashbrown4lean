@@ -12,10 +12,6 @@ def constructSet (x : Nat) (acc : HashSet Nat) : HashSet Nat :=
   | Nat.zero =>  acc.insert x
   | Nat.succ n => constructSet n <| acc.insert x
 
-def option_test (x : Nat) : Option String :=
-  match x with
-  | Nat.zero => none
-  | Nat.succ n => some (toString n)
 def main : IO Unit := do
   let set : HashSet Nat := constructSet 10 HashSet.mk
   let map : HashMap Nat String := constructMap 10 HashMap.mk
