@@ -1,6 +1,6 @@
-use core::ffi::c_void;
-use alloc::boxed::Box;
 use crate::{ffi::*, get_data_from_external};
+use alloc::boxed::Box;
+use core::ffi::c_void;
 use hashbrown::raw::{RawIter, RawTable};
 
 type HashSet = RawTable<*mut lean_object>;
@@ -49,8 +49,8 @@ unsafe extern "C" fn lean_hashbrown_hashset_create() -> lean_obj_res {
     let set = HashSet::new();
     let set = Box::new(set);
     let data = Box::into_raw(set) as *mut c_void;
-    let obj = lean_alloc_external(HASHSET_CLASS, data);
-    obj
+
+    lean_alloc_external(HASHSET_CLASS, data)
 }
 
 unsafe extern "C" fn hashset_finalize(set: *mut c_void) {

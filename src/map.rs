@@ -1,6 +1,6 @@
-use core::ffi::c_void;
-use alloc::boxed::Box;
 use crate::{ffi::*, get_data_from_external};
+use alloc::boxed::Box;
+use core::ffi::c_void;
 use hashbrown::raw::{RawIter, RawTable};
 
 #[derive(Copy, Clone)]

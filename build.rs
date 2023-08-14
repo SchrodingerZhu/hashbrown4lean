@@ -7,9 +7,7 @@ fn main() {
         .expect("failed to execute lean")
         .stdout;
     let parsed = std::str::from_utf8(&output).unwrap().trim();
-    let include = PathBuf::new()
-        .join(parsed)
-        .join("include");
+    let include = PathBuf::new().join(parsed).join("include");
     let path = PathBuf::new()
         .join(parsed)
         .join("include")
