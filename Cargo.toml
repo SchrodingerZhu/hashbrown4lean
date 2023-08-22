@@ -2,14 +2,12 @@
 name = "lean_hashbrown"
 version = "0.1.0"
 edition = "2021"
-build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 hashbrown = { version = "0.14.0", features = ["raw", "inline-more"], default-features = false }
-
-[build-dependencies]
-bindgen = "0.66.1"
+lean-sys = { git = "https://github.com/SchrodingerZhu/lean-sys/", branch = "fix-init-std", default-features = false, features = ["small_allocator"] }
+lean-base = { git = "https://github.com/SchrodingerZhu/lean-rs", branch = "no-std" }
 
 [lib]
 name = "lean_hashbrown"
@@ -20,3 +18,4 @@ panic = "abort"
 
 [profile.release]
 panic = "abort"
+

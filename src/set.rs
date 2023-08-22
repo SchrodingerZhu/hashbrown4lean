@@ -1,265 +1,90 @@
-use crate::{ffi::*, get_data_from_external};
-use alloc::boxed::Box;
-use core::ffi::c_void;
-use hashbrown::raw::{RawIter, RawTable};
+use core::{
+    ffi::c_void,
+    ops::{Deref, DerefMut},
+};
 
-type HashSet = RawTable<*mut lean_object>;
+use hashbrown::raw::RawTable;
+use lean_base::{
+    closure::Closure1,
+    external::{AsExternalObj, External, ForeachObj},
+    Obj, TObj, TObjRef,
+};
 
 #[derive(Clone)]
-enum HashSetIter {
-    More {
-        // current does not count as a reference
-        // it is kept alive via table
-        current: *mut lean_object,
-        next: Option<RawIter<*mut lean_object>>,
-        table: *mut lean_object,
-    },
-    Finished,
-}
-
-impl HashSetIter {
-    unsafe fn from_iter(mut iter: RawIter<*mut lean_object>, table: *mut lean_object) -> Self {
-        match iter.next() {
-            Some(current) => Self::More {
-                current: *current.as_ref(),
-                next: Some(iter),
-                table,
-            },
-            None => {
-                lean_dec_ref(table);
-                Self::Finished
-            }
-        }
-    }
-    unsafe fn move_next(&mut self) {
-        match self {
-            Self::More { table, next, .. } => {
-                *self = Self::from_iter(next.take().unwrap_unchecked(), *table);
-            }
-            Self::Finished => {}
-        }
-    }
-}
-
-static mut HASHSET_CLASS: *mut lean_external_class = core::ptr::null_mut();
-static mut HASHSET_ITER_CLASS: *mut lean_external_class = core::ptr::null_mut();
-
-#[no_mangle]
-unsafe extern "C" fn lean_hashbrown_hashset_create() -> lean_obj_res {
-    let set = HashSet::new();
-    let set = Box::new(set);
-    let data = Box::into_raw(set) as *mut c_void;
-
-    lean_alloc_external(HASHSET_CLASS, data)
-}
-
-unsafe extern "C" fn hashset_finalize(set: *mut c_void) {
-    let set = set as *mut HashSet;
-    let set = Box::from_raw(set);
-    for entry in set.iter() {
-        lean_dec(*entry.as_ref());
-    }
-}
-
-unsafe extern "C" fn hashset_foreach(set: *mut c_void, f: lean_obj_arg) {
-    let set = set as *mut HashSet;
-    let len = (*set).len();
-    if len == 0 {
-        return;
-    }
-    lean_inc_n(f, len);
-    for i in (*set).iter() {
-        lean_inc(*i.as_ref());
-        lean_apply_1(f, *i.as_ref());
-    }
-}
-
-unsafe extern "C" fn hashset_iter_finalize(iter: *mut c_void) {
-    let iter = Box::from_raw(iter as *mut HashSetIter);
-    match *iter {
-        HashSetIter::More { table, .. } => {
-            lean_dec_ref(table);
-        }
-        HashSetIter::Finished => {}
-    }
-}
-
-unsafe extern "C" fn hashset_iter_foreach(iter: *mut c_void, f: lean_obj_arg) {
-    let iter = iter as *mut HashSetIter;
-    match &*iter {
-        HashSetIter::More { table, .. } => {
-            lean_inc_ref(*table);
-            lean_inc(f);
-            lean_apply_1(f, *table);
-        }
-        HashSetIter::Finished => {}
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_register_hashset_class() -> lean_obj_res {
-    HASHSET_CLASS = lean_register_external_class(Some(hashset_finalize), Some(hashset_foreach));
-    lean_io_result_mk_ok(lean_box(0))
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_register_hashset_iter_class() -> lean_obj_res {
-    HASHSET_ITER_CLASS =
-        lean_register_external_class(Some(hashset_iter_finalize), Some(hashset_iter_foreach));
-    lean_io_result_mk_ok(lean_box(0))
-}
-
-unsafe fn exlusive_iter(iter: lean_obj_arg) -> lean_obj_res {
-    if lean_is_exclusive(iter) {
-        iter
-    } else {
-        let inner: *mut HashSetIter = get_data_from_external(iter);
-        let cloned = Box::into_raw(Box::new((*inner).clone()));
-        let new_iter = lean_alloc_external(HASHSET_ITER_CLASS, cloned as *mut c_void);
-        match &*cloned {
-            HashSetIter::More { table, .. } => {
-                lean_inc_ref(*table);
-            }
-            HashSetIter::Finished => {}
-        }
-        lean_dec_ref(iter);
-        new_iter
-    }
-}
-
-unsafe fn exlusive_hashset(set: lean_obj_arg) -> lean_obj_res {
-    if lean_is_exclusive(set) {
-        set
-    } else {
-        let inner: *mut HashSet = get_data_from_external(set);
-        let cloned = Box::into_raw(Box::new((*inner).clone()));
-        let new_set = lean_alloc_external(HASHSET_CLASS, cloned as *mut c_void);
-        for i in (*inner).iter() {
-            lean_inc(*i.as_ref());
-        }
-        lean_dec_ref(set);
-        new_set
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashset_get_iter(obj: lean_obj_arg) -> lean_obj_res {
-    let table = get_data_from_external::<HashSet>(obj);
-    // keep the table alive with the iter (no need to dec_ref here)
-    let iter = Box::into_raw(Box::new(HashSetIter::from_iter((*table).iter(), obj)));
-    lean_alloc_external(HASHSET_ITER_CLASS, iter as *mut c_void)
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashset_remove(
-    obj: lean_obj_arg,
+pub struct HashedObject {
     hash: u64,
-    eq_closure: lean_obj_arg,
-) -> lean_obj_res {
-    let obj = exlusive_hashset(obj);
-    let table = get_data_from_external::<HashSet>(obj);
-    let eq = |x: &lean_obj_arg| {
-        lean_inc(*x);
-        lean_inc(eq_closure);
-        let boxed = lean_apply_1(eq_closure, *x);
-        lean_unbox(boxed) != 0
-    };
-    if let Some(x) = (*table).remove_entry(hash, eq) {
-        lean_dec(x);
+    object: TObj<c_void>,
+}
+
+#[derive(Clone, Default)]
+pub struct HashSet(RawTable<HashedObject>);
+
+impl Deref for HashSet {
+    type Target = RawTable<HashedObject>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
-    obj
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashset_contains(
-    obj: lean_obj_arg,
-    hash: u64,
-    eq_closure: lean_obj_arg,
-) -> u8 {
-    let table = get_data_from_external::<HashSet>(obj);
-    let eq = |x: &lean_obj_arg| {
-        lean_inc(*x);
-        lean_inc(eq_closure);
-        let boxed = lean_apply_1(eq_closure, *x);
-        lean_unbox(boxed) != 0
-    };
-
-    (*table).find(hash, eq).is_some() as u8
+impl DerefMut for HashSet {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
 }
 
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashset_len(obj: lean_obj_arg) -> usize {
-    let table = get_data_from_external::<HashSet>(obj);
+unsafe impl ForeachObj for HashSet {
+    fn foreach_obj<F: Fn(Obj)>(&self, f: &F) {
+        unsafe {
+            for i in self.0.iter() {
+                let obj = i.as_ref().clone();
+                f(obj.object.into_obj());
+            }
+        }
+    }
+}
 
-    (*table).len()
+impl AsExternalObj for HashSet {}
+
+pub type LeanHashSet = TObj<External<HashSet>>;
+pub type LeanHashSetRef<'a> = TObjRef<'a, External<HashSet>>;
+
+#[no_mangle]
+pub extern "C" fn lean_hashbrown_hashset_create() -> LeanHashSet {
+    LeanHashSet::from(HashSet::default())
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn lean_hashbrown_hashset_insert(
-    obj: lean_obj_arg,
+    mut set: LeanHashSet,
     hash: u64,
-    target: lean_obj_arg,
-    eq_closure: lean_obj_arg,
-    hash_closure: lean_obj_arg,
-) -> lean_obj_res {
-    let obj = exlusive_hashset(obj);
-    let table = get_data_from_external::<HashSet>(obj);
-    let eq = |x: &lean_obj_arg| {
-        lean_inc(*x);
-        lean_inc(eq_closure);
-        let boxed = lean_apply_1(eq_closure, *x);
-        lean_unbox(boxed) != 0
-    };
-    let hasher = |x: &lean_obj_arg| {
-        lean_inc(*x);
-        lean_inc(hash_closure);
-        let boxed = lean_apply_1(hash_closure, *x);
-        let val = lean_unbox_uint64(boxed);
-        lean_dec(boxed);
-        val
-    };
-    match (*table).find_or_find_insert_slot(hash, eq, hasher) {
+    object: TObj<c_void>,
+    eq: TObjRef<Closure1<bool, c_void>>,
+) -> LeanHashSet {
+    let mutator = set.make_mut();
+    match mutator.find_or_find_insert_slot(
+        hash,
+        |x| x.hash == hash && eq.to_owned().invoke(x.object.clone()).unpack(),
+        |x| x.hash,
+    ) {
         Ok(bucket) => {
-            let prev = *bucket.as_ref();
-            lean_dec(prev);
-            *bucket.as_mut() = target;
+            bucket.as_mut().object = object;
         }
         Err(slot) => {
-            (*table).insert_in_slot(hash, slot, target);
+            mutator.insert_in_slot(hash, slot, HashedObject { hash, object });
         }
     }
-    obj
+    set
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashset_iter_has_element(obj: lean_obj_arg) -> u8 {
-    let iter = get_data_from_external::<HashSetIter>(obj);
-
-    match &*iter {
-        HashSetIter::More { .. } => 1,
-        HashSetIter::Finished => 0,
-    }
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashset_iter_get_element(
-    obj: lean_obj_arg,
-) -> lean_obj_res {
-    let iter = get_data_from_external::<HashSetIter>(obj);
-
-    option_to_lean(match &*iter {
-        HashSetIter::More { current, .. } => {
-            lean_inc(*current);
-            Some(*current)
-        }
-        HashSetIter::Finished => None,
+pub unsafe extern "C" fn lean_hashbrown_hashset_contains(
+    set: LeanHashSetRef,
+    hash: u64,
+    eq: TObjRef<Closure1<bool, c_void>>,
+) -> bool {
+    set.find(hash, |x| {
+        x.hash == hash && eq.to_owned().invoke(x.object.clone()).unpack()
     })
-}
-
-#[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashset_iter_move_next(obj: lean_obj_arg) -> lean_obj_res {
-    let obj = exlusive_iter(obj);
-    let iter = get_data_from_external::<HashSetIter>(obj);
-    (*iter).move_next();
-    obj
+    .is_some()
 }

@@ -10,3 +10,7 @@
 /target
 /Cargo.lock
 vgcore.*
+
+# Perf
+perf.data
+perf.data.old
