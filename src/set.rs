@@ -88,3 +88,18 @@ pub unsafe extern "C" fn lean_hashbrown_hashset_contains(
     })
     .is_some()
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn lean_hashbrown_hashset_remove(
+    mut set: LeanHashSet,
+    hash: u64,
+    eq: TObjRef<Closure1<bool, c_void>>,
+) -> LeanHashSet {
+    let mutator = set.make_mut();
+    if let Some(x) = mutator.remove_entry(hash, |x| {
+        x.hash == hash && eq.to_owned().invoke(x.object.clone()).unpack()
+    }) {
+        drop(x);
+    }
+    set
+}
