@@ -4,7 +4,7 @@
 #![allow(unused)]
 #![allow(clippy::useless_transmute)]
 
-use core::ffi::c_void;
+use core::{ffi::c_void, marker::PhantomData, ops::Deref};
 
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
@@ -180,16 +180,143 @@ pub unsafe fn lean_alloc_external(
 }
 
 #[inline]
-pub unsafe fn option_to_lean(x: Option<*mut lean_object>) -> lean_obj_res {
-    match x {
-        Some(x) => {
-            let ctor = lean_alloc_ctor(1, 1, 0);
-            {
-                let ctor = ctor as *mut lean_ctor_object;
-                (*ctor).m_objs.as_mut_slice(1)[0] = x;
+pub fn option_to_lean(x: Option<LeanObject>) -> LeanObject {
+    unsafe {
+        match x {
+            Some(x) => {
+                let ctor = lean_alloc_ctor(1, 1, 0);
+                {
+                    let ctor = ctor as *mut lean_ctor_object;
+                    (*ctor).m_objs.as_mut_slice(1)[0] = x.into_raw();
+                }
+                LeanObject(ctor)
             }
-            ctor
+            None => LeanObject(lean_box(0)),
         }
-        None => lean_box(0),
+    }
+}
+
+#[repr(transparent)]
+pub struct LeanObject(*mut lean_object);
+
+impl Drop for LeanObject {
+    fn drop(&mut self) {
+        unsafe {
+            lean_dec(self.0);
+        }
+    }
+}
+
+impl Clone for LeanObject {
+    fn clone(&self) -> Self {
+        unsafe {
+            lean_inc(self.0);
+        }
+        Self(self.0)
+    }
+}
+
+impl LeanObject {
+    pub fn into_raw(self) -> *mut lean_object {
+        let ptr = self.0;
+        core::mem::forget(self);
+        ptr
+    }
+}
+
+#[derive(Clone)]
+#[repr(transparent)]
+pub struct Object<T>(LeanObject, PhantomData<T>);
+
+impl<T> Deref for Object<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            let ptr = get_data_from_external::<T>(self.0 .0);
+            &*ptr
+        }
+    }
+}
+
+#[inline]
+unsafe fn get_data_from_external<T>(ptr: *mut lean_object) -> *mut T {
+    let ptr = ptr as *mut lean_external_object;
+    (*ptr).m_data as *mut T
+}
+
+unsafe extern "C" fn extern_foreach<T: ExternalClass>(
+    this: *mut c_void,
+    b_closure: b_lean_obj_arg,
+) {
+    let this = this as *mut T;
+    (*this).foreach(|b_obj| {
+        lean_inc(b_closure);
+        lean_apply_1(b_closure, b_obj.into_raw());
+    });
+}
+
+unsafe extern "C" fn extern_drop<T: ExternalClass>(this: *mut c_void) {
+    let _ = alloc::boxed::Box::from_raw(this as *mut T);
+}
+
+pub trait ExternalClass: Sized + 'static {
+    unsafe fn foreach<F: Fn(LeanObject)>(&self, f: F);
+    const CLASS: lean_external_class = lean_external_class {
+        m_foreach: Some(extern_foreach::<Self>),
+        m_finalize: Some(extern_drop::<Self>),
+    };
+}
+
+impl<T: ExternalClass> From<T> for Object<T> {
+    fn from(t: T) -> Self {
+        unsafe {
+            let boxed = alloc::boxed::Box::new(t);
+            let ptr = alloc::boxed::Box::into_raw(boxed);
+            let obj = lean_alloc_external(&T::CLASS as *const _ as *mut _, ptr as *mut _);
+            Object(LeanObject(obj), PhantomData)
+        }
+    }
+}
+
+impl<T: Clone + ExternalClass> Object<T> {
+    pub fn make_mut(&mut self) -> &mut T {
+        unsafe {
+            if !lean_is_exclusive(self.0 .0) {
+                *self = (**self).clone().into();
+            }
+            &mut *get_data_from_external::<T>(self.0 .0)
+        }
+    }
+}
+
+#[repr(transparent)]
+pub struct BorrowedLeanObject<'a>(*mut lean_object, PhantomData<&'a lean_object>);
+
+impl<'a> BorrowedLeanObject<'a> {
+    pub fn to_owned(&self) -> LeanObject {
+        unsafe {
+            lean_inc(self.0);
+        }
+        LeanObject(self.0)
+    }
+}
+
+#[repr(transparent)]
+pub struct BorrowedObject<'a, T>(BorrowedLeanObject<'a>, PhantomData<&'a T>);
+
+impl<'a, T> BorrowedObject<'a, T> {
+    #[inline]
+    pub fn to_owned(&self) -> Object<T> {
+        Object(self.0.to_owned(), PhantomData)
+    }
+}
+
+impl<T> Deref for BorrowedObject<'_, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        unsafe {
+            let ptr = get_data_from_external::<T>(self.0 .0);
+            &*ptr
+        }
     }
 }

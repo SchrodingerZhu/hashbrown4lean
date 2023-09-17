@@ -11,11 +11,11 @@ lean_lib «HashSet» {
   -- add library configuration options here
 }
 
-lean_lib «HashMap» {
-  precompileModules := true
-  srcDir := "lean"
-  -- add library configuration options here
-}
+-- lean_lib «HashMap» {
+--   precompileModules := true
+--   srcDir := "lean"
+--   -- add library configuration options here
+-- }
 
 @[default_target]
 lean_exe «swisstable» {

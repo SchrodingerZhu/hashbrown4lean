@@ -8,17 +8,6 @@ opaque HashMapIterPointed : (κ ν : Type)  → NonemptyType
 def HashMapIter (κ ν : Type) : Type := (HashMapIterPointed κ ν).type
 instance : Nonempty (HashMapIter κ ν) := (HashMapIterPointed κ ν).property
 
-@[extern "lean_hashbrown_register_hashmap_class"]
-private opaque registerHashMapClass : IO PUnit
-
-@[extern "lean_hashbrown_register_hashmap_iter_class"]
-private opaque registerHashMapIterClass : IO PUnit
-
-@[init]
-private def initModule : IO Unit := do 
- registerHashMapClass
- registerHashMapIterClass
-
 @[extern "lean_hashbrown_hashmap_create"]
 opaque HashMap.mk : {κ ν : Type} → HashMap κ ν
 

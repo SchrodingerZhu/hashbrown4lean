@@ -3,6 +3,7 @@
 
 /build
 /lake-packages/*
+*.olean
 
 
 # Added by cargo

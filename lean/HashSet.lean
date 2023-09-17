@@ -8,18 +8,6 @@ opaque HashSetIterPointed : (α : Type)  → NonemptyType
 def HashSetIter (α : Type) : Type := (HashSetIterPointed α).type
 instance : Nonempty (HashSetIter α) := (HashSetIterPointed α).property
 
--- Initialization routines
-@[extern "lean_hashbrown_register_hashset_class"]
-private opaque registerHashSetClass : IO PUnit
-
-@[extern "lean_hashbrown_register_hashset_iter_class"]
-private opaque registerHashSetIterClass : IO PUnit
-
-@[init]
-private def initModule : IO Unit := do 
- registerHashSetClass
- registerHashSetIterClass
-
 -- APIs
 @[extern "lean_hashbrown_hashset_create"]
 opaque HashSet.mk : {α : Type} → HashSet α
@@ -85,3 +73,7 @@ instance [Repr α] : Repr (HashSet α) where
 
 instance [Repr α] : ToString (HashSet α) where
   toString x := Repr.reprPrec x 0 |> Std.Format.pretty
+
+instance [Hashable α] : EmptyCollection (HashSet α) where
+  emptyCollection := HashSet.mk
+

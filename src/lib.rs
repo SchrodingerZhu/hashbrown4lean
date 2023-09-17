@@ -1,25 +1,19 @@
 #![no_std]
 use core::alloc::GlobalAlloc;
 
-use ffi::{lean_external_object, lean_internal_panic_out_of_memory, lean_object};
+use ffi::{lean_align, LEAN_MAX_SMALL_OBJECT_SIZE, LEAN_OBJECT_SIZE_DELTA};
+
 extern crate alloc;
 
 mod ffi;
-mod map;
+//mod map;
 mod set;
-
-#[inline]
-unsafe fn get_data_from_external<T>(ptr: *mut lean_object) -> *mut T {
-    let ptr = ptr as *mut lean_external_object;
-    (*ptr).m_data as *mut T
-}
 
 #[cfg(not(test))]
 #[no_mangle]
 extern "C" fn rust_eh_personality() {}
 
 extern "C" {
-    fn malloc(size: usize) -> *mut u8;
     fn aligned_alloc(align: usize, size: usize) -> *mut u8;
     fn free(ptr: *mut u8);
 }
@@ -31,29 +25,40 @@ unsafe fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
     crate::ffi::lean_internal_panic(info.as_ptr() as _)
 }
 
-struct LibcAlloc;
+struct Alloc;
 
-unsafe impl GlobalAlloc for LibcAlloc {
+unsafe impl GlobalAlloc for Alloc {
     unsafe fn alloc(&self, layout: core::alloc::Layout) -> *mut u8 {
-        let memory = if layout.align() <= core::mem::align_of::<usize>() {
-            malloc(layout.size())
+        let alignment = layout.align().max(LEAN_OBJECT_SIZE_DELTA as usize);
+        let size = lean_align(layout.size() as u32, alignment as u32) as usize;
+        let memory = if alignment == LEAN_OBJECT_SIZE_DELTA as usize
+            && size <= LEAN_MAX_SMALL_OBJECT_SIZE as usize
+        {
+            let slot = ffi::lean_get_slot_idx(size as u32);
+            ffi::lean_alloc_small(size as u32, slot) as *mut u8
         } else {
-            let alignment = layout.align();
-            let size = layout.size();
-            let aligned: usize = size + (size.wrapping_neg() & alignment.wrapping_sub(1));
-            aligned_alloc(layout.align(), aligned)
+            ffi::lean_inc_heartbeat();
+            aligned_alloc(alignment, size)
         };
         if memory.is_null() {
-            lean_internal_panic_out_of_memory()
+            ffi::lean_internal_panic_out_of_memory()
         } else {
             memory
         }
     }
 
-    unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
-        free(ptr)
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: core::alloc::Layout) {
+        let alignment = layout.align().max(LEAN_OBJECT_SIZE_DELTA as usize);
+        let size = lean_align(layout.size() as u32, alignment as u32) as usize;
+        if alignment == LEAN_OBJECT_SIZE_DELTA as usize
+            && size <= LEAN_MAX_SMALL_OBJECT_SIZE as usize
+        {
+            ffi::lean_free_small(ptr as *mut core::ffi::c_void);
+        } else {
+            free(ptr);
+        }
     }
 }
 
 #[global_allocator]
-static ALLOC: LibcAlloc = LibcAlloc;
+static ALLOC: Alloc = Alloc;
