@@ -91,27 +91,27 @@ structure SeededHashSet (η : Type) (α : Type) where
 attribute [always_inline, inline] SeededHashSet.set
 attribute [always_inline, inline] SeededHashSet.seed
 
-def SeededHashSet.insert [HashState.HashState η α] [BEq α] 
+def SeededHashSet.insert [HashState.HashState η] [HashState.Hasher η α] [BEq α] 
   (s: SeededHashSet η α) (a: α) : SeededHashSet η α :=
-    let updated := HashState.HashState.update s.seed a
-    let hash := HashState.HashState.finish (α := α) updated
+    let updated := HashState.Hasher.update s.seed a
+    let hash := HashState.HashState.finish updated
     let eq := fun (b: α) => a == b
     {
       set := HashSet.insertRaw s.set hash a eq,
       seed := s.seed
     }
 
-def SeededHashSet.contains [HashState.HashState η α] [BEq α] 
+def SeededHashSet.contains [HashState.HashState η] [HashState.Hasher η α] [BEq α] 
   (s: SeededHashSet η α) (a: α) : Bool :=
-    let updated := HashState.HashState.update s.seed a
-    let hash := HashState.HashState.finish (α := α) updated
+    let updated := HashState.Hasher.update s.seed a
+    let hash := HashState.HashState.finish updated
     let eq := fun (b: α) => a == b
     HashSet.containsRaw s.set hash eq
 
-def SeededHashSet.remove [HashState.HashState η α] [BEq α] 
+def SeededHashSet.remove [HashState.HashState η] [HashState.Hasher η α] [BEq α] 
   (s: SeededHashSet η α) (a: α) : SeededHashSet η α :=
-    let updated := HashState.HashState.update s.seed a
-    let hash := HashState.HashState.finish (α := α) updated
+    let updated := HashState.Hasher.update s.seed a
+    let hash := HashState.HashState.finish updated
     let eq := fun (b: α) => a == b
     {
       set := HashSet.removeRaw s.set hash eq,

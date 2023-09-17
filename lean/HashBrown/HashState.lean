@@ -1,8 +1,10 @@
 namespace HashBrown
 namespace HashState
 
-class HashState (η : Type) (α : Type) where
+class HashState (η : Type)  where
   finish : η → UInt64
+
+class Hasher (η : Type) [HashState η] (α : Type) where
   update : η → α → η
 
 structure FxMixer where 
@@ -20,8 +22,10 @@ def FxMixer.update [Hashable α] (s : FxMixer) (a : α) : FxMixer :=
   let rotated := rotateLeft h 5
   FxMixer.mk <| (s.state ^^^ rotated) * 0x517cc1b727220a95
 
-instance [Hashable α] : HashState FxMixer α where
+instance : HashState FxMixer where
   finish s := s.state
+
+instance [Hashable α] : Hasher FxMixer α where
   update s a := s.update a
 
 instance : Inhabited FxMixer where

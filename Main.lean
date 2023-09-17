@@ -13,7 +13,7 @@ def constructSet (x : Nat) (acc : SeededHashSet FxMixer Nat := default) : Seeded
   | Nat.zero =>  acc.insert x
   | Nat.succ n => constructSet n <| acc.insert x
 
-partial def hashSet (stdin: IO.FS.Stream) (output: IO.FS.Stream): StateT (HashSet String) IO Unit := do 
+partial def hashSet (stdin: IO.FS.Stream) (output: IO.FS.Stream): StateT (SeededHashSet FxMixer String) IO Unit := do 
   let map ← get
   let line ← stdin.getLine
   let str := line.trim
@@ -26,4 +26,4 @@ partial def hashSet (stdin: IO.FS.Stream) (output: IO.FS.Stream): StateT (HashSe
 def main : IO Unit := do
   let stdin <- IO.getStdin
   let stdout <- IO.getStdout
-  hashSet stdin stdout |>.run' HashSet.mk
+  hashSet stdin stdout |>.run' default

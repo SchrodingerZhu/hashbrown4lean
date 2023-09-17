@@ -99,37 +99,37 @@ structure SeededHashMap (η : Type) (κ : Type) (ν : Type) where
   private map : HashMap κ ν
   private seed : η
 
-def SeededHashMap.insert [HashState.HashState η κ] [BEq κ] 
+def SeededHashMap.insert [HashState.HashState η] [HashState.Hasher η κ] [BEq κ] 
   (s: SeededHashMap η κ ν) (k: κ) (v : ν) : SeededHashMap η κ ν :=
-    let updated := HashState.HashState.update s.seed k
-    let hash := HashState.HashState.finish (α := κ) updated
+    let updated := HashState.Hasher.update s.seed k
+    let hash := HashState.HashState.finish updated
     let eq := fun k' => k == k'
     {
       map := HashMap.insertRaw s.map hash k v eq,
       seed := s.seed
     }
 
-def SeededHashMap.contains [HashState.HashState η κ] [BEq κ] 
+def SeededHashMap.contains [HashState.HashState η] [HashState.Hasher η κ] [BEq κ] 
   (s: SeededHashMap η κ ν) (k: κ) : Bool :=
-    let updated := HashState.HashState.update s.seed k
-    let hash := HashState.HashState.finish (α := κ) updated
+    let updated := HashState.Hasher.update s.seed k
+    let hash := HashState.HashState.finish updated
     let eq := fun k' => k == k'
     HashMap.containsRaw s.map hash eq
 
-def SeededHashMap.remove [HashState.HashState η κ] [BEq κ] 
+def SeededHashMap.remove [HashState.HashState η] [HashState.Hasher η κ] [BEq κ] 
   (s: SeededHashMap η κ ν) (k: κ) : SeededHashMap η κ ν :=
-    let updated := HashState.HashState.update s.seed k
-    let hash := HashState.HashState.finish (α := κ) updated
+    let updated := HashState.Hasher.update s.seed k
+    let hash := HashState.HashState.finish updated
     let eq := fun k' => k == k'
     {
       map := HashMap.removeRaw s.map hash eq,
       seed := s.seed
     }
 
-def SeededHashMap.getValue? [HashState.HashState η κ] [BEq κ] 
+def SeededHashMap.getValue? [HashState.HashState η] [HashState.Hasher η κ] [BEq κ] 
   (s: SeededHashMap η κ ν) (k: κ) : Option ν :=
-    let updated := HashState.HashState.update s.seed k
-    let hash := HashState.HashState.finish (α := κ) updated
+    let updated := HashState.Hasher.update s.seed k
+    let hash := HashState.HashState.finish updated
     let eq := fun k' => k == k'
     HashMap.getValueRaw? s.map hash eq
 
