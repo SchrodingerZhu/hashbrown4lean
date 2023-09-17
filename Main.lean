@@ -1,10 +1,12 @@
-import «HashSet»
--- import «HashMap»
+import «HashBrown»
 
--- def constructMap (x : Nat) (acc : HashMap Nat String) : HashMap Nat String :=
---   match x with
---   | Nat.zero => acc
---   | Nat.succ n => constructMap n <| acc.insert x <| toString x
+open HashBrown
+open HashMap HashSet
+
+def constructMap (x : Nat) (acc : HashMap Nat String) : HashMap Nat String :=
+  match x with
+  | Nat.zero => acc
+  | Nat.succ n => constructMap n <| acc.insert x <| toString x
 
 def constructSet (x : Nat) (acc : HashSet Nat) : HashSet Nat :=
   match x with

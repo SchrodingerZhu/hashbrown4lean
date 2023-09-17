@@ -1,3 +1,5 @@
+namespace HashBrown
+namespace HashSet
 -- Opaque type for HashSet
 opaque HashSetPointed : (α : Type) → NonemptyType
 def HashSet (α : Type) : Type := (HashSetPointed α).type
@@ -14,7 +16,7 @@ opaque HashSet.mk : {α : Type} → HashSet α
 
 @[extern "lean_hashbrown_hashset_insert"]
 private opaque HashSet.insertRaw : {α : Type} 
-  → HashSet α → UInt64 → α → @&(α → Bool) → @&(α → UInt64) → HashSet α 
+  → HashSet α → UInt64 → α → @&(α → Bool) → HashSet α 
 
 @[extern "lean_hashbrown_hashset_contains"]
 private opaque HashSet.containsRaw : {α : Type} 
@@ -42,8 +44,7 @@ opaque HashSetIter.next : {α : Type} → HashSetIter α → HashSetIter α
 def HashSet.insert {α : Type} [Hashable α] [BEq α] (s: HashSet α) (a: α) : HashSet α :=
   let hash := Hashable.hash a
   let eq := fun (b: α) => a == b
-  let hasher := Hashable.hash
-  HashSet.insertRaw s hash a eq hasher
+  HashSet.insertRaw s hash a eq
 
 def HashSet.remove {α : Type} [Hashable α] [BEq α] (s: HashSet α) (a: α) : HashSet α :=
   let hash := Hashable.hash a
@@ -74,6 +75,6 @@ instance [Repr α] : Repr (HashSet α) where
 instance [Repr α] : ToString (HashSet α) where
   toString x := Repr.reprPrec x 0 |> Std.Format.pretty
 
-instance [Hashable α] : EmptyCollection (HashSet α) where
+instance : EmptyCollection (HashSet α) where
   emptyCollection := HashSet.mk
 

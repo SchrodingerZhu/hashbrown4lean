@@ -6,7 +6,7 @@ use ffi::{lean_align, LEAN_MAX_SMALL_OBJECT_SIZE, LEAN_OBJECT_SIZE_DELTA};
 extern crate alloc;
 
 mod ffi;
-//mod map;
+mod map;
 mod set;
 
 #[cfg(not(test))]

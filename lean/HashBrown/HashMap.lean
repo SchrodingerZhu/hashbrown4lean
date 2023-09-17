@@ -1,3 +1,5 @@
+namespace HashBrown
+namespace HashMap
 -- Opaque type for HashMap
 opaque HashMapPointed : (κ ν : Type) → NonemptyType
 def HashMap (κ ν : Type) : Type := (HashMapPointed κ ν).type
@@ -13,7 +15,7 @@ opaque HashMap.mk : {κ ν : Type} → HashMap κ ν
 
 @[extern "lean_hashbrown_hashmap_insert"]
 private opaque HashMap.insertRaw : {κ ν : Type} 
-  → HashMap κ ν → UInt64 → κ → ν → @&(κ → Bool) → @&(κ → UInt64) → HashMap κ ν 
+  → HashMap κ ν → UInt64 → κ → ν → @&(κ → Bool) → HashMap κ ν 
 
 @[extern "lean_hashbrown_hashmap_contains"]
 private opaque HashMap.containsRaw : {κ ν : Type} 
@@ -48,8 +50,7 @@ opaque HashMapIter.next :  {κ ν : Type} → HashMapIter κ ν → HashMapIter 
 def HashMap.insert {κ ν : Type} [Hashable κ] [BEq κ] (s: HashMap κ ν) (k: κ) (v : ν) : HashMap κ ν :=
   let hash := Hashable.hash k
   let eq := fun (k': κ) => k == k'
-  let hasher := Hashable.hash
-  HashMap.insertRaw s hash k v eq hasher
+  HashMap.insertRaw s hash k v eq
 
 def HashMap.remove {κ ν : Type} [Hashable κ] [BEq κ] (s: HashMap κ ν) (k: κ) : HashMap κ ν :=
   let hash := Hashable.hash k
@@ -85,3 +86,6 @@ instance [Repr κ] [Repr ν] : Repr (HashMap κ ν) where
 
 instance [Repr κ] [Repr ν] : ToString (HashMap κ ν) where
   toString x := Repr.reprPrec x 0 |> Std.Format.pretty
+
+instance : EmptyCollection (HashMap κ ν) where
+  emptyCollection := HashMap.mk
