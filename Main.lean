@@ -1,14 +1,14 @@
 import «HashBrown»
 
 open HashBrown
-open HashMap HashSet
+open HashMap HashSet HashState
 
 def constructMap (x : Nat) (acc : HashMap Nat String) : HashMap Nat String :=
   match x with
   | Nat.zero => acc
   | Nat.succ n => constructMap n <| acc.insert x <| toString x
 
-def constructSet (x : Nat) (acc : HashSet Nat) : HashSet Nat :=
+def constructSet (x : Nat) (acc : SeededHashSet FxMixer Nat := default) : SeededHashSet FxMixer Nat :=
   match x with
   | Nat.zero =>  acc.insert x
   | Nat.succ n => constructSet n <| acc.insert x

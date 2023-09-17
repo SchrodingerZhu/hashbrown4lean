@@ -1,3 +1,5 @@
+import HashBrown.HashState
+
 namespace HashBrown
 namespace HashSet
 -- Opaque type for HashSet
@@ -77,4 +79,60 @@ instance [Repr α] : ToString (HashSet α) where
 
 instance : EmptyCollection (HashSet α) where
   emptyCollection := HashSet.mk
+
+instance : Inhabited (HashSet α) where
+  default := HashSet.mk
+
+structure SeededHashSet (η : Type) (α : Type) where
+  private mk::
+  private set : HashSet α
+  private seed : η
+
+attribute [always_inline, inline] SeededHashSet.set
+attribute [always_inline, inline] SeededHashSet.seed
+
+def SeededHashSet.insert [HashState.HashState η α] [BEq α] 
+  (s: SeededHashSet η α) (a: α) : SeededHashSet η α :=
+    let updated := HashState.HashState.update s.seed a
+    let hash := HashState.HashState.finish (α := α) updated
+    let eq := fun (b: α) => a == b
+    {
+      set := HashSet.insertRaw s.set hash a eq,
+      seed := s.seed
+    }
+
+def SeededHashSet.contains [HashState.HashState η α] [BEq α] 
+  (s: SeededHashSet η α) (a: α) : Bool :=
+    let updated := HashState.HashState.update s.seed a
+    let hash := HashState.HashState.finish (α := α) updated
+    let eq := fun (b: α) => a == b
+    HashSet.containsRaw s.set hash eq
+
+def SeededHashSet.remove [HashState.HashState η α] [BEq α] 
+  (s: SeededHashSet η α) (a: α) : SeededHashSet η α :=
+    let updated := HashState.HashState.update s.seed a
+    let hash := HashState.HashState.finish (α := α) updated
+    let eq := fun (b: α) => a == b
+    {
+      set := HashSet.removeRaw s.set hash eq,
+      seed := s.seed
+    }
+
+def SeededHashSet.len (s: SeededHashSet η α) : USize :=
+  HashSet.len s.set
+
+def SeededHashSet.iter (s: SeededHashSet η α) : HashSetIter α :=
+  HashSet.iter s.set
+
+instance [Inhabited η] : Inhabited (SeededHashSet η α) where
+  default := { set := HashSet.mk, seed := default }
+
+instance [Inhabited η] : EmptyCollection (SeededHashSet η α) where
+  emptyCollection := default
+
+instance [Repr α] : Repr (SeededHashSet η α) where
+  reprPrec := reprPrec ∘ SeededHashSet.set
+
+instance [Repr α] : ToString (SeededHashSet η α) where
+  toString x := Repr.reprPrec x 0 |> Std.Format.pretty
 

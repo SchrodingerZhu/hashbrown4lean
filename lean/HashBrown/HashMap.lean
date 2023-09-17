@@ -1,3 +1,4 @@
+import HashBrown.HashState
 namespace HashBrown
 namespace HashMap
 -- Opaque type for HashMap
@@ -89,3 +90,64 @@ instance [Repr κ] [Repr ν] : ToString (HashMap κ ν) where
 
 instance : EmptyCollection (HashMap κ ν) where
   emptyCollection := HashMap.mk
+
+instance : Inhabited (HashMap κ ν) where
+  default := HashMap.mk
+
+structure SeededHashMap (η : Type) (κ : Type) (ν : Type) where
+  private mk::
+  private map : HashMap κ ν
+  private seed : η
+
+def SeededHashMap.insert [HashState.HashState η κ] [BEq κ] 
+  (s: SeededHashMap η κ ν) (k: κ) (v : ν) : SeededHashMap η κ ν :=
+    let updated := HashState.HashState.update s.seed k
+    let hash := HashState.HashState.finish (α := κ) updated
+    let eq := fun k' => k == k'
+    {
+      map := HashMap.insertRaw s.map hash k v eq,
+      seed := s.seed
+    }
+
+def SeededHashMap.contains [HashState.HashState η κ] [BEq κ] 
+  (s: SeededHashMap η κ ν) (k: κ) : Bool :=
+    let updated := HashState.HashState.update s.seed k
+    let hash := HashState.HashState.finish (α := κ) updated
+    let eq := fun k' => k == k'
+    HashMap.containsRaw s.map hash eq
+
+def SeededHashMap.remove [HashState.HashState η κ] [BEq κ] 
+  (s: SeededHashMap η κ ν) (k: κ) : SeededHashMap η κ ν :=
+    let updated := HashState.HashState.update s.seed k
+    let hash := HashState.HashState.finish (α := κ) updated
+    let eq := fun k' => k == k'
+    {
+      map := HashMap.removeRaw s.map hash eq,
+      seed := s.seed
+    }
+
+def SeededHashMap.getValue? [HashState.HashState η κ] [BEq κ] 
+  (s: SeededHashMap η κ ν) (k: κ) : Option ν :=
+    let updated := HashState.HashState.update s.seed k
+    let hash := HashState.HashState.finish (α := κ) updated
+    let eq := fun k' => k == k'
+    HashMap.getValueRaw? s.map hash eq
+
+def SeededHashMap.len (s: SeededHashMap η κ ν) : USize :=
+  HashMap.len s.map
+
+def SeededHashMap.iter (s: SeededHashMap η κ ν) : HashMapIter κ ν :=
+  HashMap.iter s.map
+
+instance [Inhabited η] : Inhabited (SeededHashMap η κ ν) where
+  default := { map := HashMap.mk, seed := default }
+
+instance [Inhabited η] : EmptyCollection (SeededHashMap η κ ν) where
+  emptyCollection := default
+
+instance [Repr κ] [Repr ν] : Repr (SeededHashMap η κ ν) where
+  reprPrec := reprPrec ∘ SeededHashMap.map
+
+instance [Repr κ] [Repr ν] : ToString (SeededHashMap η κ ν) where
+  toString x := Repr.reprPrec x 0 |> Std.Format.pretty
+
