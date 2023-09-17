@@ -122,7 +122,7 @@ pub extern "C" fn lean_hashbrown_hashmap_remove(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_contains(
+pub extern "C" fn lean_hashbrown_hashmap_contains(
     obj: BorrowedObject<HashMap>,
     hash: u64,
     eq_closure: BorrowedLeanObject,
@@ -164,7 +164,7 @@ pub extern "C" fn lean_hashbrown_hashmap_len(obj: BorrowedObject<HashMap>) -> us
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_insert(
+pub extern "C" fn lean_hashbrown_hashmap_insert(
     mut obj: Object<HashMap>,
     hash: u64,
     key: LeanObject,
@@ -193,9 +193,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_insert(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_has_kv(
-    iter: BorrowedObject<HashMapIter>,
-) -> u8 {
+pub extern "C" fn lean_hashbrown_hashmap_iter_has_kv(iter: BorrowedObject<HashMapIter>) -> u8 {
     match &*iter {
         HashMapIter::More { .. } => 1,
         HashMapIter::Finished => 0,
@@ -203,7 +201,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_has_kv(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_key(
+pub extern "C" fn lean_hashbrown_hashmap_iter_get_key(
     obj: BorrowedObject<HashMapIter>,
 ) -> LeanObject {
     option_to_lean(match &*obj {
@@ -213,7 +211,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_key(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_value(
+pub extern "C" fn lean_hashbrown_hashmap_iter_get_value(
     obj: BorrowedObject<HashMapIter>,
 ) -> LeanObject {
     option_to_lean(match &*obj {
@@ -223,7 +221,7 @@ pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_get_value(
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn lean_hashbrown_hashmap_iter_move_next(
+pub extern "C" fn lean_hashbrown_hashmap_iter_move_next(
     mut obj: Object<HashMapIter>,
 ) -> Object<HashMapIter> {
     obj.make_mut().move_next();
