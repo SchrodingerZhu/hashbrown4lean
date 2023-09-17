@@ -21,7 +21,7 @@ extern "C" {
 #[cfg(not(test))]
 #[panic_handler]
 unsafe fn panic_handler(_info: &core::panic::PanicInfo) -> ! {
-    let info = "liblean_hashbrown rust ffi panics\n";
+    let info = b"liblean_hashbrown rust ffi panics\n\0";
     crate::ffi::lean_internal_panic(info.as_ptr() as _)
 }
 
